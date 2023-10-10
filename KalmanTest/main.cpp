@@ -3,21 +3,34 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 #include <stdio.h>
 #include <time.h>
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
+#include "pico/multicore.h"
 #include "hardware/i2c.h"
+
 #include "WS2812.hpp"
 #include "MPU6050.hpp"
 
 #define LED_PIN 16
-#define LED_LENGTH 1 
+#define LED_LENGTH 1
 
-clock_t clock()
-{
-    return (clock_t) time_us_64() / 10000;
+
+void core1_main() {
+    WS2812 built_in_led(LED_PIN, LED_LENGTH, pio0, 0, WS2812::FORMAT_GRB);
+    while (true) {    
+        for (int i = 0; i < 255; i++) {
+            built_in_led.fill(WS2812::RGB(0, i, 0));
+            built_in_led.show();
+            sleep_ms(5);
+        }
+        for (int i = 255; i > 0; i--) {
+            built_in_led.fill(WS2812::RGB(0, i, 0));
+            built_in_led.show();
+            sleep_ms(5);
+        }
+    } 
 }
 
 int main() {
@@ -59,15 +72,19 @@ int main() {
     built_in_led.fill(WS2812::RGB(100, 100, 0));
     built_in_led.show();
 
+    multicore_launch_core1(core1_main);
     while(true) {
-        //clock_t startTime = clock();
+#ifdef DEBUG
+        uint32_t startTime = time_us_32();
+#endif
+
         mpu6050.updateData();
-        //double executionTime = (double)(clock() - startTime) / CLOCKS_PER_SEC;
-        //printf("s:%f\n", executionTime);
-        //printf("AccX:%d,GyroX:%d\n", mpu6050.acc[0], mpu6050.gyro[1]);
-        // printf("Acc: %d, %d, %d\n", mpu6050.acc[0], mpu6050.acc[1], mpu6050.acc[2]);
-        // printf("Gyro: %d, %d, %d\n", mpu6050.gyro[0], mpu6050.gyro[1], mpu6050.gyro[2]);
-        printf("Temp:%f\n", mpu6050.temp);
+
+#ifdef DEBUG
+        uint32_t executionTime = time_us_32() - startTime;
+        //printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\n", executionTime, mpu6050.raw_acc[0], mpu6050.raw_acc[1], mpu6050.raw_acc[2], mpu6050.raw_gyro[0], mpu6050.raw_gyro[1], mpu6050.raw_gyro[2], mpu6050.temp);
+        printf("%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n", executionTime, mpu6050.acc[0], mpu6050.acc[1], mpu6050.acc[2], mpu6050.gyro[0], mpu6050.gyro[1], mpu6050.gyro[2], mpu6050.temp);
+#endif
     }
 
     printf("Done.\n");

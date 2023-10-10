@@ -1,6 +1,11 @@
 # Set minimum required version of CMake
 cmake_minimum_required(VERSION 3.12)
 
+# Add Debug flag if build type is Debug
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_definitions(-DDEBUG)
+endif()
+
 # Include build functions from Pico SDK
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
@@ -20,6 +25,7 @@ add_executable(${PROJECT_NAME}
     main.cpp
     WS2812.cpp
     MPU6050.cpp
+    HW611.cpp
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/WS2812.pio) 
@@ -36,6 +42,7 @@ target_link_libraries(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     hardware_pio
     hardware_i2c
+    pico_multicore
 )
 
 # Enable usb output, disable uart output
