@@ -12,6 +12,7 @@
 
 #include "WS2812.hpp"
 #include "MPU6050.hpp"
+#include "HW611.hpp"
 
 #define LED_PIN 16
 #define LED_LENGTH 1
@@ -57,13 +58,19 @@ int main() {
     // Make the I2C pins available to picotool
     bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C));
     sleep_ms(2000);
+    printf("I2C initialized\n");
 
     MPU6050 mpu6050(0x68);
-    printf("MPU6050 initialized\n");
-    if (mpu6050.testConnection()) {
-        printf("MPU6050 connection successful\n");
-    } else {
+    HW611 hw611(0x76);
+
+    if (mpu6050.testConnection()) printf("MPU6050 connection successful\n");
+    else {
         printf("MPU6050 connection failed\n");
+        return 1;
+    }
+    if (hw611.testConnection()) printf("HW611 connection successful\n");
+    else {
+        printf("HW611 connection failed\n");
         return 1;
     }
 
@@ -79,11 +86,12 @@ int main() {
 #endif
 
         mpu6050.updateData();
+        hw611.updateData();
 
 #ifdef DEBUG
         uint32_t executionTime = time_us_32() - startTime;
         //printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\n", executionTime, mpu6050.raw_acc[0], mpu6050.raw_acc[1], mpu6050.raw_acc[2], mpu6050.raw_gyro[0], mpu6050.raw_gyro[1], mpu6050.raw_gyro[2], mpu6050.temp);
-        printf("%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n", executionTime, mpu6050.acc[0], mpu6050.acc[1], mpu6050.acc[2], mpu6050.gyro[0], mpu6050.gyro[1], mpu6050.gyro[2], mpu6050.temp);
+        printf("%d\t%f\t%f\t%f\t%f\t%.3f\n", executionTime, mpu6050.gyro[0], mpu6050.gyro[1], mpu6050.gyro[2], hw611.temp, hw611.pressure);
 #endif
     }
 
