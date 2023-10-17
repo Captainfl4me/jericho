@@ -63,14 +63,20 @@ void core1_main() {
 
     uint32_t command;
     while(true) {
-        command = multicore_fifo_pop_blocking();
-        printf("Command: %d\n", command);
-        apply_fifo_command(command);
+        if (!Logger::logger->is_fifo_empty()) {
+            Logger::logger->write_all_data_from_fifo();
+        }
 
-        if (command == SHUTDOWN_CORE) {
-            Logger::logger->write_log("Shutingdown core1...");
-            multicore_fifo_push_blocking(SHUTDOWN_CORE);
-            break;
+        if(multicore_fifo_rvalid()){
+            command = multicore_fifo_pop_blocking();
+            if (command == SHUTDOWN_CORE) {        
+                if (!Logger::logger->is_fifo_empty()) {
+                    Logger::logger->write_all_data_from_fifo();
+                }
+                Logger::logger->write_log("Shutingdown core1...");
+                multicore_fifo_push_blocking(SHUTDOWN_CORE);
+                break;
+            }
         }
     }
 
@@ -125,6 +131,8 @@ int main() {
     multicore_launch_core1(core1_main);
     multicore_fifo_drain();
     Logger::logger->write_log("Starting loop...");
+
+    data_t data;
     while(true) {
 #ifdef DEBUG
         uint32_t startTime = time_us_32();
@@ -133,19 +141,15 @@ int main() {
         mpu6050.updateData();
         hw611.updateData();
 
-        if (multicore_fifo_wready()) {
-            printf("Write to fifo\n");
-            multicore_fifo_push_blocking(WRITE_DATA);
-            multicore_fifo_push_blocking(startTime);
-            multicore_fifo_push_blocking(mpu6050.raw_acc[0]);
-            multicore_fifo_push_blocking(mpu6050.raw_acc[1]);
-            multicore_fifo_push_blocking(mpu6050.raw_acc[2]);
-            multicore_fifo_push_blocking(mpu6050.raw_gyro[0]);
-            multicore_fifo_push_blocking(mpu6050.raw_gyro[1]);
-            multicore_fifo_push_blocking(mpu6050.raw_gyro[2]);
-        } else {
-            printf("FIFO not ready\n");
-        }
+        data.time = startTime;
+        data.raw_acc[0] = mpu6050.raw_acc[0];
+        data.raw_acc[1] = mpu6050.raw_acc[1];
+        data.raw_acc[2] = mpu6050.raw_acc[2];
+        data.raw_gyro[0] = mpu6050.raw_gyro[0];
+        data.raw_gyro[1] = mpu6050.raw_gyro[1];
+        data.raw_gyro[2] = mpu6050.raw_gyro[2];
+
+        Logger::logger->push_data_to_fifo(&data);
 
         if(time_us_32() > 10 * 1000000) {
             multicore_fifo_push_blocking(SHUTDOWN_CORE);

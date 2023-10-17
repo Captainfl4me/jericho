@@ -4,6 +4,8 @@ Logger* Logger::logger = nullptr;
 
 Logger::Logger(uint8_t miso_gpio, uint8_t ss_gpio, uint8_t sck_gpio, uint8_t mosi_gpio, uint32_t baud_rate, spi_inst_t* hw_inst) {
     Logger::logger = this;
+    this->fifo_head = 0;
+    this->fifo_tail = 0;
 
     spi_t* p_spi = new spi_t;
     memset(p_spi, 0, sizeof(spi_t));
@@ -129,6 +131,38 @@ void Logger::write_data(uint32_t time, int16_t acc_x, int16_t acc_y, int16_t acc
     printf("%d,%d,%d,%d,%d,%d,%d\n", time, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z);
 #endif
     f_close(&file);
+}
+
+int Logger::write_all_data_from_fifo() {
+    uint8_t fifo_length = (this->fifo_tail - this->fifo_head);
+    if (fifo_length < 0) fifo_length += FIFO_SIZE;
+
+    FIL file;
+    char filename[20];
+    sprintf(filename, "%s/%s", this->dir_name, this->data_filename);
+    FRESULT fr = f_open(&file, filename, FA_WRITE | FA_OPEN_APPEND);
+    if (FR_OK != fr) printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
+
+    uint8_t fifo_index;
+    for (int i = 0; i < fifo_length; i++) {
+        fifo_index = (this->fifo_head + i) % FIFO_SIZE;
+        if (f_printf(&file, "%d,%d,%d,%d,%d,%d,%d\n", this->fifo[fifo_index].time, this->fifo[fifo_index].raw_acc[0], this->fifo[fifo_index].raw_acc[1], this->fifo[fifo_index].raw_acc[2], this->fifo[fifo_index].raw_gyro[0], this->fifo[fifo_index].raw_gyro[1], this->fifo[fifo_index].raw_gyro[2]) < 0) printf("f_printf failed\n");
+#ifdef DEBUG
+        printf("%d,%d,%d,%d,%d,%d,%d\n", this->fifo[fifo_index].time, this->fifo[fifo_index].raw_acc[0], this->fifo[fifo_index].raw_acc[1], this->fifo[fifo_index].raw_acc[2], this->fifo[fifo_index].raw_gyro[0], this->fifo[fifo_index].raw_gyro[1], this->fifo[fifo_index].raw_gyro[2]);
+#endif
+    }
+    this->fifo_head = this->fifo_tail;
+    f_close(&file);
+    return fifo_length;
+}
+
+bool Logger::is_fifo_empty() {
+    return this->fifo_head == this->fifo_tail;
+}
+
+void Logger::push_data_to_fifo(data_t* data) {
+    this->fifo[this->fifo_tail] = *data;
+    this->fifo_tail = (this->fifo_tail + 1) % FIFO_SIZE;
 }
 
 Logger::~Logger() {
