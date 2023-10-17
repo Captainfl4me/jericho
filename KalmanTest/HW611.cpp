@@ -13,7 +13,7 @@ HW611::HW611(uint8_t addr) {
 
 void HW611::init() {
     this->writeToRegister(REG_CTRL_MEAS, 0b00101111);
-    this->writeToRegister(REG_CONFIG, 0x00001000);
+    this->writeToRegister(REG_CONFIG, 0b00001000);
     this->fetchCalibParams();
 }
 

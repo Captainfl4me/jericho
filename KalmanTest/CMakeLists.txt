@@ -26,9 +26,12 @@ add_executable(${PROJECT_NAME}
     WS2812.cpp
     MPU6050.cpp
     HW611.cpp
+    hw_config.cpp
+    logger.cpp
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/WS2812.pio) 
+add_subdirectory(lib/FatFs_SPI build)
 
 # Create map/bin/hex/uf2 files
 pico_add_extra_outputs(${PROJECT_NAME})
@@ -38,11 +41,13 @@ target_link_libraries(${PROJECT_NAME}
     pico_stdlib
 )
 
+
 # Add any user requested libraries
 target_link_libraries(${PROJECT_NAME}
     hardware_pio
     hardware_i2c
     pico_multicore
+    FatFs_SPI
 )
 
 # Enable usb output, disable uart output

@@ -1,3 +1,6 @@
+#ifndef HW611_H
+#define HW611_H
+
 #include <cstdlib>
 #include "pico/types.h"
 #include "hardware/i2c.h"
@@ -85,3 +88,5 @@ class HW611 {
     uint8_t* readFromRegister(uint8_t reg, uint8_t len, int* res);
     int writeToRegister(uint8_t reg, uint8_t data);
 };
+
+#endif

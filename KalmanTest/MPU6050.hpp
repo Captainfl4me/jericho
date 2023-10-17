@@ -1,3 +1,6 @@
+#ifndef MPU6050_HPP
+#define MPU6050_HPP
+
 #include <cstdlib>
 #include "pico/types.h"
 #include "hardware/i2c.h"
@@ -115,3 +118,5 @@ class MPU6050 {
     uint8_t* readFromRegister(uint8_t reg, uint8_t len);
     void writeToRegister(uint8_t reg, uint8_t data);
 };
+
+#endif
