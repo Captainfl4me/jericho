@@ -80,6 +80,7 @@ Logger::Logger(uint8_t miso_gpio, uint8_t ss_gpio, uint8_t sck_gpio, uint8_t mos
     sprintf(filename, "%s/%s", dir_name, this->data_filename);
     fr = f_open(&file, filename, FA_WRITE|FA_CREATE_NEW);
     if (FR_OK != fr) printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
+    if (f_printf(&file, "sep=,\n") < 0) printf("f_printf failed\n");
     if (f_printf(&file, "time,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z\n") < 0) printf("f_printf failed\n");
     f_close(&file);
 
@@ -146,9 +147,9 @@ int Logger::write_all_data_from_fifo() {
     uint8_t fifo_index;
     for (int i = 0; i < fifo_length; i++) {
         fifo_index = (this->fifo_head + i) % FIFO_SIZE;
-        if (f_printf(&file, "%d,%d,%d,%d,%d,%d,%d\n", this->fifo[fifo_index].time, this->fifo[fifo_index].raw_acc[0], this->fifo[fifo_index].raw_acc[1], this->fifo[fifo_index].raw_acc[2], this->fifo[fifo_index].raw_gyro[0], this->fifo[fifo_index].raw_gyro[1], this->fifo[fifo_index].raw_gyro[2]) < 0) printf("f_printf failed\n");
+        if (f_printf(&file, "%d,%f,%f,%f,%f,%f,%f\n", this->fifo[fifo_index].time, this->fifo[fifo_index].acc.x, this->fifo[fifo_index].acc.y, this->fifo[fifo_index].acc.z, this->fifo[fifo_index].gyro.x, this->fifo[fifo_index].gyro.y, this->fifo[fifo_index].gyro.z) < 0) printf("f_printf failed\n");
 #ifdef DEBUG
-        printf("%d,%d,%d,%d,%d,%d,%d\n", this->fifo[fifo_index].time, this->fifo[fifo_index].raw_acc[0], this->fifo[fifo_index].raw_acc[1], this->fifo[fifo_index].raw_acc[2], this->fifo[fifo_index].raw_gyro[0], this->fifo[fifo_index].raw_gyro[1], this->fifo[fifo_index].raw_gyro[2]);
+        printf("%d,%f,%f,%f,%f,%f,%f\n", this->fifo[fifo_index].time, this->fifo[fifo_index].acc.x, this->fifo[fifo_index].acc.y, this->fifo[fifo_index].acc.z, this->fifo[fifo_index].gyro.x, this->fifo[fifo_index].gyro.y, this->fifo[fifo_index].gyro.z);
 #endif
     }
     this->fifo_head = this->fifo_tail;

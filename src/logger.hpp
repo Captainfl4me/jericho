@@ -13,6 +13,8 @@
 #include "diskio.h" /* Declarations of disk functions */
 #include "hw_config.h"
 
+#include "vector.hpp"
+
 #define FIFO_SIZE 50
 
 void add_spi(spi_t *spi);
@@ -20,8 +22,8 @@ void add_sd_card(sd_card_t *sd_card);
 
 struct data_t{
     uint32_t time;
-    uint16_t raw_acc[3];
-    uint16_t raw_gyro[3];
+    float_vector3_t acc;
+    float_vector3_t gyro;
 };
 
 class Logger {
@@ -49,7 +51,7 @@ class Logger {
     static Logger* logger;
     
     const char* log_filename = "log.txt";
-    const char* data_filename = "data.txt";
+    const char* data_filename = "data.csv";
 };
 
 #endif

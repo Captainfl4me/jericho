@@ -110,9 +110,14 @@ int main() {
     Logger::logger->write_log("I2C initialized");
 
     MPU6050 mpu6050(0x68);
+    mpu6050.set_accel_range(mpu_6050_range::MPU6050_RANGE_16G);
+    mpu6050.set_gyro_scale(mpu_6050_scale::MPU6050_SCALE_1000DPS);
+
+    mpu6050.calibrate(1000);
+    
     HW611 hw611(0x76);
 
-    if (mpu6050.testConnection()) Logger::logger->write_log("MPU6050 connection successful");
+    if (mpu6050.test_connection()) Logger::logger->write_log("MPU6050 connection successful");
     else {
         Logger::logger->write_error("MPU6050 connection failed");
         return 1;
@@ -138,20 +143,22 @@ int main() {
         uint32_t startTime = time_us_32();
 #endif
 
-        mpu6050.updateData();
-        hw611.updateData();
+        mpu6050.update_all_data();
+        //hw611.updateData();
+        // mpu6050_event(&mpu6050_test);
+        // mpu6050_vectorf_t *gyro = mpu6050_get_gyroscope(&mpu6050_test);
 
         data.time = startTime;
-        data.raw_acc[0] = mpu6050.raw_acc[0];
-        data.raw_acc[1] = mpu6050.raw_acc[1];
-        data.raw_acc[2] = mpu6050.raw_acc[2];
-        data.raw_gyro[0] = mpu6050.raw_gyro[0];
-        data.raw_gyro[1] = mpu6050.raw_gyro[1];
-        data.raw_gyro[2] = mpu6050.raw_gyro[2];
+        data.acc.x = mpu6050.acc.x;
+        data.acc.y = mpu6050.acc.y;
+        data.acc.z = mpu6050.acc.z;
+        data.gyro.x = mpu6050.gyro.x;
+        data.gyro.y = mpu6050.gyro.y;
+        data.gyro.z = mpu6050.gyro.z;
 
         Logger::logger->push_data_to_fifo(&data);
 
-        if(time_us_32() > 10 * 1000000) {
+        if(time_us_32() > 30 * 1000000) {
             multicore_fifo_push_blocking(SHUTDOWN_CORE);
             break;
         }
@@ -159,7 +166,7 @@ int main() {
 #ifdef DEBUG
         uint32_t executionTime = time_us_32() - startTime;
         //printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\n", executionTime, mpu6050.raw_acc[0], mpu6050.raw_acc[1], mpu6050.raw_acc[2], mpu6050.raw_gyro[0], mpu6050.raw_gyro[1], mpu6050.raw_gyro[2], mpu6050.temp);
-        printf("%d\t%f\t%f\t%f\t%f\t%.3f\n", executionTime, mpu6050.gyro[0], mpu6050.gyro[1], mpu6050.gyro[2], hw611.temp, hw611.pressure);
+        printf("%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%.3f\n", executionTime, mpu6050.acc.x, mpu6050.acc.y, mpu6050.acc.z, mpu6050.gyro.x, mpu6050.gyro.y, mpu6050.gyro.z, hw611.temp, hw611.pressure);
 #endif
     }
     sleep_ms(100);

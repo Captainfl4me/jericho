@@ -5,6 +5,8 @@
 #include "pico/types.h"
 #include "hardware/i2c.h"
 
+#include "vector.hpp"
+
 #define REG_SELF_TEST_X 0x0D
 #define REG_SELF_TEST_Y 0x0E
 #define REG_SELF_TEST_Z 0x0F
@@ -90,33 +92,74 @@
 #define REG_WHO_AM_I 0x75
 
 #define MPU_DEFAULT_I2C_ADDR 0x68
+#define MPU_AD0_I2C_ADDR 0x68
+
+enum mpu_6050_scale
+{
+    MPU6050_SCALE_250DPS = 0,
+    MPU6050_SCALE_500DPS = 1,
+    MPU6050_SCALE_1000DPS = 2,
+    MPU6050_SCALE_2000DPS = 3
+};
+
+enum mpu_6050_range
+{
+    MPU6050_RANGE_2G = 0,
+    MPU6050_RANGE_4G = 1,
+    MPU6050_RANGE_8G = 2,
+    MPU6050_RANGE_16G = 3,
+};
+
+
+struct mpu_6050_config
+{
+    mpu_6050_scale scale;
+    float dps_per_digit;
+
+    mpu_6050_range range;
+    float range_per_digit;
+
+    float_vector3_t gyro_offset;
+} typedef mpu6050_config_t;
 
 class MPU6050 {
     uint8_t addr;
+    mpu6050_config_t config;
 
     public:
-    uint16_t raw_acc[3]; // x, y, z
-    uint16_t raw_gyro[3]; // x, y, z
-    uint16_t raw_temp;
+    int16_t raw_acc[3]; // x, y, z
+    int16_t raw_gyro[3]; // x, y, z
+    int16_t raw_temp;
 
-    float acc[3]; // x, y, z
-    float gyro[3]; // x, y, z
+    float_vector3_t acc;
+    float_vector3_t gyro;
     float temp;
 
-    float acc_prev[3]; // x, y, z
-    float gyro_prev[3]; // x, y, z
+    float_vector3_t acc_prev; // x, y, z
+    float_vector3_t gyro_prev; // x, y, z
     float temp_prev;
 
     MPU6050();
     MPU6050(uint8_t addr);
     void init();
+    void calibrate(uint16_t samples);
 
-    void updateData();
-    bool testConnection();
+    void read_raw_acc();
+    void read_raw_temp();
+    void read_raw_gyro();
+    void update_only_acc();
+    void update_only_temp();
+    void update_only_gyro();
+    void update_all_data();
+
+    bool test_connection();
+
+    void set_gyro_scale(mpu_6050_scale scale);
+    void set_accel_range(mpu_6050_range range);
 
     private:
-    uint8_t* readFromRegister(uint8_t reg, uint8_t len);
-    void writeToRegister(uint8_t reg, uint8_t data);
+    uint8_t* read_from_register(uint8_t reg, uint8_t len);
+    void write_to_register(uint8_t reg, uint8_t data);
 };
 
 #endif
