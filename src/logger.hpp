@@ -8,7 +8,6 @@
 
 #include "f_util.h"
 #include "ff.h"
-#include "pico/stdlib.h"
 #include "rtc.h"
 #include "diskio.h" /* Declarations of disk functions */
 #include "hw_config.h"
