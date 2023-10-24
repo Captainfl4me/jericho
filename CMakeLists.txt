@@ -20,9 +20,37 @@ set(PICO_CXX_ENABLE_RTTI 1)
 # Creates a pico-sdk subdirectory in our project for the libraries
 pico_sdk_init()
 
-add_subdirectory(src)
 add_subdirectory(lib/FatFs_SPI build_fastfs_spi)
 add_subdirectory(lib/WS2812 build_ws2812)
+
+
+# Tell CMake where to find the executable source file
+add_executable(${PROJECT_NAME} 
+src/main.cpp
+src/MPU6050.cpp
+src/HW611.cpp
+src/hw_config.cpp
+src/logger.cpp
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE include)
+
+# Create map/bin/hex/uf2 files
+pico_add_extra_outputs(${PROJECT_NAME})
+
+# Link to pico_stdlib (gpio, time, etc. functions)
+target_link_libraries(${PROJECT_NAME} 
+    pico_stdlib
+)
+
+# Add any user requested libraries
+target_link_libraries(${PROJECT_NAME}
+    hardware_pio
+    hardware_i2c
+    pico_multicore
+    FatFs_SPI
+    WS2812
+)
 
 # Enable usb output, disable uart output
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
