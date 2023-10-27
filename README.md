@@ -17,7 +17,10 @@ The built-in adressable LED in the waveshare RP2040 zero board is use to check s
 
 LED | status
 --|--
-RED | Initialization
+RED | Start program
+RED blink | Running initialization
 GREEN blink | Running start-up tests
+GREEN 1s | All tests are OK
+PURPLE | At least one test failed!
 YELLOW | Main loop running
 BLUE | Main loop exit, mission finish successfully

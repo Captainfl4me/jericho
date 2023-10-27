@@ -4,6 +4,7 @@ Logger* Logger::logger = nullptr;
 
 Logger::Logger(uint8_t miso_gpio, uint8_t ss_gpio, uint8_t sck_gpio, uint8_t mosi_gpio, uint32_t baud_rate, spi_inst_t* hw_inst) {
     Logger::logger = this;
+    this->has_sd_card_init = false;
     this->fifo_head = 0;
     this->fifo_tail = 0;
 
@@ -30,10 +31,16 @@ Logger::Logger(uint8_t miso_gpio, uint8_t ss_gpio, uint8_t sck_gpio, uint8_t mos
     add_sd_card(sd_card);
 
     FRESULT fr = f_mount(&this->sd_card->fatfs, this->sd_card->pcName, 1);
-    if (FR_OK != fr) printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+    if (FR_OK != fr) {
+        printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+        return;
+    }
 
     fr = f_chdrive(this->sd_card->pcName);
-    if (FR_OK != fr) printf("f_chdrive error: %s (%d)\n", FRESULT_str(fr), fr);
+    if (FR_OK != fr) {
+        printf("f_chdrive error: %s (%d)\n", FRESULT_str(fr), fr);
+        return;
+    }
 
 #ifdef DEBUG
     printf("Listing folder...\n");
@@ -67,7 +74,7 @@ Logger::Logger(uint8_t miso_gpio, uint8_t ss_gpio, uint8_t sck_gpio, uint8_t mos
     char dir_name[10];
     int str_length = sprintf(dir_name, "run_%d", this->_run);
     fr = f_mkdir(dir_name);
-    if (FR_OK != fr) printf("f_mkfs error: %s (%d)\n", FRESULT_str(fr), fr);
+    if (FR_OK != fr) { printf("f_mkfs error: %s (%d)\n", FRESULT_str(fr), fr); return; }
     this->dir_name = (char*)malloc(str_length + 1);
     strcpy(this->dir_name, dir_name);
 
@@ -79,9 +86,9 @@ Logger::Logger(uint8_t miso_gpio, uint8_t ss_gpio, uint8_t sck_gpio, uint8_t mos
     char filename[20];
     sprintf(filename, "%s/%s", dir_name, this->data_filename);
     fr = f_open(&file, filename, FA_WRITE|FA_CREATE_NEW);
-    if (FR_OK != fr) printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
-    if (f_printf(&file, "sep=,\n") < 0) printf("f_printf failed\n");
-    if (f_printf(&file, "time,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z\n") < 0) printf("f_printf failed\n");
+    if (FR_OK != fr) { printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr); return; }
+    if (f_printf(&file, "sep=,\n") < 0) { printf("f_printf failed\n"); return; }
+    if (f_printf(&file, "time,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z\n") < 0) { printf("f_printf failed\n"); return; }
     f_close(&file);
 
 #ifdef DEBUG
@@ -90,51 +97,78 @@ Logger::Logger(uint8_t miso_gpio, uint8_t ss_gpio, uint8_t sck_gpio, uint8_t mos
     // Create new log file
     sprintf(filename, "%s/%s", dir_name, this->log_filename);
     fr = f_open(&file, filename, FA_WRITE|FA_CREATE_NEW);
-    if (FR_OK != fr) printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
-    if (f_printf(&file, "---------- LOG ----------\n") < 0) printf("f_printf failed\n");
+    if (FR_OK != fr) { printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr); return; }
+    if (f_printf(&file, "---------- LOG ----------\n") < 0) { printf("f_printf failed\n"); return; }
     f_close(&file);
+
+    this->has_sd_card_init = true;
 }
 
-void Logger::write_log(const char* message) {
-    FIL file;
-    char filename[20];
-    sprintf(filename, "%s/%s", this->dir_name, this->log_filename);
-    FRESULT fr = f_open(&file, filename, FA_WRITE | FA_OPEN_APPEND);
-    if (FR_OK != fr) printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
-    if (f_printf(&file, "%d us [LOG] : %s\n", time_us_32(), message) < 0) printf("f_printf failed\n");
+bool Logger::write_log(const char* message) {
 #ifdef DEBUG
     printf("%d us [LOG] : %s\n", time_us_32(), message);
 #endif
-    f_close(&file);
-}
-
-void Logger::write_error(const char* message) {
+    if (!this->has_sd_card_init) return false;
     FIL file;
     char filename[20];
     sprintf(filename, "%s/%s", this->dir_name, this->log_filename);
     FRESULT fr = f_open(&file, filename, FA_WRITE | FA_OPEN_APPEND);
-    if (FR_OK != fr) printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
-    if (f_printf(&file, "%d us [ERR] : %s\n", time_us_32(), message) < 0) printf("f_printf failed\n");
+    if (FR_OK != fr) {
+        printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
+        return false;
+    }
+    if (f_printf(&file, "%d us [LOG] : %s\n", time_us_32(), message) < 0) {
+        printf("f_printf failed\n");
+        return false;
+    }
+    f_close(&file);
+    return true;
+}
+
+bool Logger::write_error(const char* message) {
 #ifdef DEBUG
     printf("%d us [ERR] : %s\n", time_us_32(), message);
 #endif
+    if (!this->has_sd_card_init) return false;
+    FIL file;
+    char filename[20];
+    sprintf(filename, "%s/%s", this->dir_name, this->log_filename);
+    FRESULT fr = f_open(&file, filename, FA_WRITE | FA_OPEN_APPEND);
+    if (FR_OK != fr) {
+        printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
+        return false;
+    }
+    if (f_printf(&file, "%d us [ERR] : %s\n", time_us_32(), message) < 0) {
+        printf("f_printf failed\n");
+        return false;
+    }
     f_close(&file);
+    return true;
 }
 
-void Logger::write_data(uint32_t time, int16_t acc_x, int16_t acc_y, int16_t acc_z, int16_t gyro_x, int16_t gyro_y, int16_t gyro_z) {
+bool Logger::write_data(uint32_t time, int16_t acc_x, int16_t acc_y, int16_t acc_z, int16_t gyro_x, int16_t gyro_y, int16_t gyro_z) {
+#ifdef DEBUG
+    printf("%d,%d,%d,%d,%d,%d,%d\n", time, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z);
+#endif
+    if (!this->has_sd_card_init) return false;
     FIL file;
     char filename[20];
     sprintf(filename, "%s/%s", this->dir_name, this->data_filename);
     FRESULT fr = f_open(&file, filename, FA_WRITE | FA_OPEN_APPEND);
-    if (FR_OK != fr) printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
-    if (f_printf(&file, "%d,%d,%d,%d,%d,%d,%d\n", time, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z) < 0) printf("f_printf failed\n");
-#ifdef DEBUG
-    printf("%d,%d,%d,%d,%d,%d,%d\n", time, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z);
-#endif
+    if (FR_OK != fr) {
+        printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
+        return false;
+    }
+    if (f_printf(&file, "%d,%d,%d,%d,%d,%d,%d\n", time, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z) < 0) {
+        printf("f_printf failed\n");
+        return false;
+    }
     f_close(&file);
+    return true;
 }
 
 int Logger::write_all_data_from_fifo() {
+    if (!this->has_sd_card_init) return false;
     uint8_t fifo_length = (this->fifo_tail - this->fifo_head);
     if (fifo_length < 0) fifo_length += FIFO_SIZE;
 
@@ -155,6 +189,13 @@ int Logger::write_all_data_from_fifo() {
     this->fifo_head = this->fifo_tail;
     f_close(&file);
     return fifo_length;
+}
+
+bool Logger::test_connection() {
+    if (!this->has_sd_card_init) return false;
+    if (!this->write_log("TEST SD CARD")) return false;
+    if (!this->write_data(0, 0, 0, 0, 0, 0, 0)) return false;
+    return true;
 }
 
 bool Logger::is_fifo_empty() {

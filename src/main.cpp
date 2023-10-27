@@ -23,15 +23,25 @@
 #define WRITE_DATA 0x0002
 #define SHUTDOWN_CORE 0xf003
 
-void panic_blink_freeze(WS2812* built_in_led) {
+void start_blink(WS2812* built_in_led, uint8_t red, uint8_t green, uint8_t blue, uint32_t delay_ms) {
     while (true) {
-        built_in_led->fill(WS2812::RGB(255, 0, 0));
+        built_in_led->fill(WS2812::RGB(red, green, blue));
         built_in_led->show();
-        sleep_ms(100);
-        built_in_led->fill(WS2812::RGB(0, 0, 0));
+        sleep_ms(delay_ms);
+        built_in_led->fill(WS2812::RGB(red, green, blue));
         built_in_led->show();
-        sleep_ms(100);
+        sleep_ms(delay_ms);
     }
+}
+
+void start_blink_red() {
+    WS2812 built_in_led(LED_PIN, LED_LENGTH, pio0, 0, WS2812::FORMAT_GRB);
+    start_blink(&built_in_led, 255, 0, 0, 100);
+}
+
+void start_blink_green() {
+    WS2812 built_in_led(LED_PIN, LED_LENGTH, pio0, 0, WS2812::FORMAT_GRB);
+    start_blink(&built_in_led, 0, 255, 0, 100);
 }
 
 void apply_fifo_command(uint32_t command) {
@@ -55,12 +65,6 @@ void apply_fifo_command(uint32_t command) {
 }
 
 void core1_main() {
-    WS2812 built_in_led(LED_PIN, LED_LENGTH, pio0, 0, WS2812::FORMAT_GRB);
-
-    //Init finished
-    built_in_led.fill(WS2812::RGB(0, 255, 0));
-    built_in_led.show();
-
     uint32_t command;
     while(true) {
         if (!Logger::logger->is_fifo_empty()) {
@@ -88,7 +92,7 @@ int main() {
     // Enable UART so we can print status output
     stdio_init_all();
     Logger::logger = new Logger(0, 1, 2, 3, 12500 * 1000, spi0);
-    Logger::logger->write_log("RP2040 log start!\n");
+    Logger::logger->write_log("RP2040 log start!");
 
 #if !defined(i2c_default) || !defined(PICO_DEFAULT_I2C_SDA_PIN) || !defined(PICO_DEFAULT_I2C_SCL_PIN)
 #warning i2c/bus_scan example requires a board with I2C pins
@@ -97,6 +101,7 @@ int main() {
     WS2812 built_in_led(LED_PIN, LED_LENGTH, pio0, 0, WS2812::FORMAT_GRB);
     built_in_led.fill(WS2812::RGB(255, 0, 0));
     built_in_led.show();
+    multicore_launch_core1(start_blink_red);
 
     // Init I2C 0 with 400KHz
     i2c_init(i2c_default, 400 * 1000);
@@ -107,32 +112,48 @@ int main() {
 
     // Make the I2C pins available to picotool
     bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C));
-    Logger::logger->write_log("I2C initialized");
 
     MPU6050 mpu6050(0x68);
     mpu6050.set_accel_range(mpu_6050_range::MPU6050_RANGE_16G);
     mpu6050.set_gyro_scale(mpu_6050_scale::MPU6050_SCALE_1000DPS);
-
-    mpu6050.calibrate(1000);
-    
     HW611 hw611(0x76);
 
+    mpu6050.calibrate(1000);
+    multicore_reset_core1();
+
+    multicore_launch_core1(start_blink_green);
+    Logger::logger->write_log("Initialized");
     if (mpu6050.test_connection()) Logger::logger->write_log("MPU6050 connection successful");
     else {
         Logger::logger->write_error("MPU6050 connection failed");
+        built_in_led.fill(WS2812::RGB(100, 0, 100));
+        built_in_led.show();
         return 1;
     }
     if (hw611.testConnection()) Logger::logger->write_log("HW611 connection successful");
     else {
         Logger::logger->write_error("HW611 connection failed");
+        built_in_led.fill(WS2812::RGB(100, 0, 100));
+        built_in_led.show();
         return 1;
     }
+    if (Logger::logger->test_connection()) Logger::logger->write_log("SD card connection successful");
+    else {
+        Logger::logger->write_error("SD card connection failed");
+        built_in_led.fill(WS2812::RGB(100, 0, 100));
+        built_in_led.show();
+        return 1;
+    }
+    multicore_reset_core1();
 
+    // If all tests are sucessfull wait 1 second and start main loop
+    built_in_led.fill(WS2812::RGB(0, 100, 0));
+    built_in_led.show();
     sleep_ms(1000);
+    
     built_in_led.fill(WS2812::RGB(100, 100, 0));
     built_in_led.show();
     Logger::logger->write_log("Initialize finish starting core1...");
-    
     multicore_launch_core1(core1_main);
     multicore_fifo_drain();
     Logger::logger->write_log("Starting loop...");
@@ -181,7 +202,7 @@ int main() {
         Logger::logger->write_log("Confirm Shutdown core1");
     }else {
         Logger::logger->write_error("Core1 shutdown failed");
-        panic_blink_freeze(&built_in_led);
+        start_blink_red();
     }
 
     Logger::logger->write_log("Shutdown core 0.\n");
