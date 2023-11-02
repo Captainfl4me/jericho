@@ -23,7 +23,6 @@ pico_sdk_init()
 add_subdirectory(lib/FatFs_SPI build_fastfs_spi)
 add_subdirectory(lib/WS2812 build_ws2812)
 
-
 # Tell CMake where to find the executable source file
 add_executable(${PROJECT_NAME} 
 src/main.cpp

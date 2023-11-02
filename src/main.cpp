@@ -93,7 +93,7 @@ int main() {
     // Make the I2C pins available to picotool
     bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C));
 
-    MPU6050 mpu6050(0x68);
+    MPU6050 mpu6050(0x68, (uint8_t)1000);
     mpu6050.set_accel_range(mpu_6050_range::MPU6050_RANGE_16G);
     mpu6050.set_gyro_scale(mpu_6050_scale::MPU6050_SCALE_1000DPS);
     HW611 hw611(0x76);
@@ -144,16 +144,16 @@ int main() {
         uint32_t startTime = time_us_32();
 #endif
 
-        mpu6050.update_all_data();
+        mpu6050.update();
         hw611.updateData();
 
         data.time = startTime;
-        data.acc.x = mpu6050.acc.x;
-        data.acc.y = mpu6050.acc.y;
-        data.acc.z = mpu6050.acc.z;
-        data.gyro.x = mpu6050.gyro.x;
-        data.gyro.y = mpu6050.gyro.y;
-        data.gyro.z = mpu6050.gyro.z;
+        data.acc.x = mpu6050.data.acc.x;
+        data.acc.y = mpu6050.data.acc.y;
+        data.acc.z = mpu6050.data.acc.z;
+        data.gyro.x = mpu6050.data.gyro.x;
+        data.gyro.y = mpu6050.data.gyro.y;
+        data.gyro.z = mpu6050.data.gyro.z;
         data.pressure = hw611.pressure;
 
         Logger::logger->push_data_to_fifo(&data);
@@ -166,7 +166,7 @@ int main() {
 #ifdef DEBUG
         uint32_t executionTime = time_us_32() - startTime;
         //printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\n", executionTime, mpu6050.raw_acc[0], mpu6050.raw_acc[1], mpu6050.raw_acc[2], mpu6050.raw_gyro[0], mpu6050.raw_gyro[1], mpu6050.raw_gyro[2], mpu6050.temp);
-        printf("%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%.3f\n", executionTime, mpu6050.acc.x, mpu6050.acc.y, mpu6050.acc.z, mpu6050.gyro.x, mpu6050.gyro.y, mpu6050.gyro.z, hw611.temp, hw611.pressure);
+        printf("%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%.3f\n", executionTime, mpu6050.data.acc.x, mpu6050.data.acc.y, mpu6050.data.acc.z, mpu6050.data.gyro.x, mpu6050.data.gyro.y, mpu6050.data.gyro.z, hw611.temp, hw611.pressure);
 #endif
     }
     sleep_ms(100);
