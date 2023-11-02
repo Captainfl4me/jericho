@@ -115,13 +115,13 @@ struct mpu_6050_config
     mpu_6050_range range;
     float range_per_digit;
 
-    float_vector3_t gyro_offset;
+    vector3<float> gyro_offset;
 } typedef mpu6050_config_t;
 
 struct MPU6050_DATA
 {
-    float_vector3_t acc;
-    float_vector3_t gyro;
+    vector3<float> acc;
+    vector3<float> gyro;
     float temp;
 } typedef MPU6050_DATA;
 
@@ -130,10 +130,6 @@ class MPU6050: public I2cSensor<MPU6050_DATA>{
     mpu6050_config_t config;
 
 public:
-    int16_t raw_acc[3]; // x, y, z
-    int16_t raw_gyro[3]; // x, y, z
-    int16_t raw_temp;
-
     MPU6050();
     MPU6050(uint8_t addr, uint8_t freq);
     MPU6050(uint8_t addr, i2c_inst_t *i2c_port);
@@ -143,9 +139,6 @@ public:
 
     void calibrate(uint16_t samples);
 
-    void read_raw_acc();
-    void read_raw_temp();
-    void read_raw_gyro();
     void update_only_acc();
     void update_only_temp();
     void update_only_gyro();

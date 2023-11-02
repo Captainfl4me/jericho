@@ -21,8 +21,8 @@ void add_sd_card(sd_card_t *sd_card);
 
 struct data_t{
     uint32_t time;
-    float_vector3_t acc;
-    float_vector3_t gyro;
+    vector3<float> acc;
+    vector3<float> gyro;
     float pressure;
 };
 
