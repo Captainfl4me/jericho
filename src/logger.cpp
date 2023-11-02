@@ -88,7 +88,7 @@ Logger::Logger(uint8_t miso_gpio, uint8_t ss_gpio, uint8_t sck_gpio, uint8_t mos
     fr = f_open(&file, filename, FA_WRITE|FA_CREATE_NEW);
     if (FR_OK != fr) { printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr); return; }
     if (f_printf(&file, "sep=,\n") < 0) { printf("f_printf failed\n"); return; }
-    if (f_printf(&file, "time,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z\n") < 0) { printf("f_printf failed\n"); return; }
+    if (f_printf(&file, "time,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,pressure\n") < 0) { printf("f_printf failed\n"); return; }
     f_close(&file);
 
 #ifdef DEBUG
@@ -146,9 +146,9 @@ bool Logger::write_error(const char* message) {
     return true;
 }
 
-bool Logger::write_data(uint32_t time, int16_t acc_x, int16_t acc_y, int16_t acc_z, int16_t gyro_x, int16_t gyro_y, int16_t gyro_z) {
+bool Logger::write_data(uint32_t time, float acc_x, float acc_y, float acc_z,  float gyro_x, float gyro_y, float gyro_z, float pressure) {
 #ifdef DEBUG
-    printf("%d,%d,%d,%d,%d,%d,%d\n", time, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z);
+    printf("%d,%f,%f,%f,%f,%f,%f,%f\n", time, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z, pressure);
 #endif
     if (!this->has_sd_card_init) return false;
     FIL file;
@@ -159,7 +159,7 @@ bool Logger::write_data(uint32_t time, int16_t acc_x, int16_t acc_y, int16_t acc
         printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
         return false;
     }
-    if (f_printf(&file, "%d,%d,%d,%d,%d,%d,%d\n", time, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z) < 0) {
+    if (f_printf(&file, "%d,%f,%f,%f,%f,%f,%f,%f\n", time, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z, pressure) < 0) {
         printf("f_printf failed\n");
         return false;
     }
@@ -169,8 +169,6 @@ bool Logger::write_data(uint32_t time, int16_t acc_x, int16_t acc_y, int16_t acc
 
 int Logger::write_all_data_from_fifo() {
     if (!this->has_sd_card_init) return false;
-    uint8_t fifo_length = (this->fifo_tail - this->fifo_head);
-    if (fifo_length < 0) fifo_length += FIFO_SIZE;
 
     FIL file;
     char filename[20];
@@ -178,23 +176,23 @@ int Logger::write_all_data_from_fifo() {
     FRESULT fr = f_open(&file, filename, FA_WRITE | FA_OPEN_APPEND);
     if (FR_OK != fr) printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
 
-    uint8_t fifo_index;
-    for (int i = 0; i < fifo_length; i++) {
-        fifo_index = (this->fifo_head + i) % FIFO_SIZE;
-        if (f_printf(&file, "%d,%f,%f,%f,%f,%f,%f\n", this->fifo[fifo_index].time, this->fifo[fifo_index].acc.x, this->fifo[fifo_index].acc.y, this->fifo[fifo_index].acc.z, this->fifo[fifo_index].gyro.x, this->fifo[fifo_index].gyro.y, this->fifo[fifo_index].gyro.z) < 0) printf("f_printf failed\n");
+    int written_data = 0;
+    while(this->fifo_head!=this->fifo_tail) {
+        if (f_printf(&file, "%d,%f,%f,%f,%f,%f,%f,%f\n", this->fifo[this->fifo_head].time, this->fifo[this->fifo_head].acc.x, this->fifo[this->fifo_head].acc.y, this->fifo[this->fifo_head].acc.z, this->fifo[this->fifo_head].gyro.x, this->fifo[this->fifo_head].gyro.y, this->fifo[this->fifo_head].gyro.z, this->fifo[this->fifo_head].pressure) < 0) printf("f_printf failed\n");
 #ifdef DEBUG
-        printf("%d,%f,%f,%f,%f,%f,%f\n", this->fifo[fifo_index].time, this->fifo[fifo_index].acc.x, this->fifo[fifo_index].acc.y, this->fifo[fifo_index].acc.z, this->fifo[fifo_index].gyro.x, this->fifo[fifo_index].gyro.y, this->fifo[fifo_index].gyro.z);
+        printf("%d,%f,%f,%f,%f,%f,%f,%f\n", this->fifo[this->fifo_head].time, this->fifo[this->fifo_head].acc.x, this->fifo[this->fifo_head].acc.y, this->fifo[this->fifo_head].acc.z, this->fifo[this->fifo_head].gyro.x, this->fifo[this->fifo_head].gyro.y, this->fifo[this->fifo_head].gyro.z, this->fifo[this->fifo_head].pressure);
 #endif
+        this->fifo_head = (this->fifo_head + 1) % FIFO_SIZE;
+        written_data++;
     }
-    this->fifo_head = this->fifo_tail;
     f_close(&file);
-    return fifo_length;
+    return written_data;
 }
 
 bool Logger::test_connection() {
     if (!this->has_sd_card_init) return false;
     if (!this->write_log("TEST SD CARD")) return false;
-    if (!this->write_data(0, 0, 0, 0, 0, 0, 0)) return false;
+    if (!this->write_data(0, 0, 0, 0, 0, 0, 0, 0)) return false;
     return true;
 }
 

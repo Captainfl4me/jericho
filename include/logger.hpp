@@ -23,6 +23,7 @@ struct data_t{
     uint32_t time;
     float_vector3_t acc;
     float_vector3_t gyro;
+    float pressure;
 };
 
 class Logger {
@@ -42,7 +43,7 @@ class Logger {
 
     bool write_log(const char* message);
     bool write_error(const char* message);
-    bool write_data(uint32_t time, int16_t acc_x, int16_t acc_y, int16_t acc_z, int16_t gyro_x, int16_t gyro_y, int16_t gyro_z);
+    bool write_data(uint32_t time, float acc_x, float acc_y, float acc_z,  float gyro_x, float gyro_y, float gyro_z, float pressure);
     
     bool test_connection();
     void push_data_to_fifo(data_t* data);

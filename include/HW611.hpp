@@ -67,8 +67,8 @@ class HW611 {
     HW611_calib_param calib_param;
     
     public:
-    uint32_t raw_pressure;
-    uint32_t raw_temp;
+    int32_t raw_pressure;
+    int32_t raw_temp;
 
     float temp;
     float pressure;

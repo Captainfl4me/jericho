@@ -44,26 +44,6 @@ void start_blink_green() {
     start_blink(&built_in_led, 0, 255, 0, 100);
 }
 
-void apply_fifo_command(uint32_t command) {
-    if (command == WRITE_DATA) {
-        uint32_t time = multicore_fifo_pop_blocking();
-        int16_t acc_x = multicore_fifo_pop_blocking();
-        int16_t acc_y = multicore_fifo_pop_blocking();
-        int16_t acc_z = multicore_fifo_pop_blocking();
-        int16_t gyro_x = multicore_fifo_pop_blocking();
-        int16_t gyro_y = multicore_fifo_pop_blocking();
-        int16_t gyro_z = multicore_fifo_pop_blocking();
-            
-        Logger::logger->write_data(time, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z);
-    }else if (command == SHUTDOWN_CORE) {
-        while(multicore_fifo_rvalid()) {
-            command = multicore_fifo_pop_blocking();
-            printf("Command: %d\n", command);
-            apply_fifo_command(command);
-        }
-    }
-}
-
 void core1_main() {
     uint32_t command;
     while(true) {
@@ -165,9 +145,7 @@ int main() {
 #endif
 
         mpu6050.update_all_data();
-        //hw611.updateData();
-        // mpu6050_event(&mpu6050_test);
-        // mpu6050_vectorf_t *gyro = mpu6050_get_gyroscope(&mpu6050_test);
+        hw611.updateData();
 
         data.time = startTime;
         data.acc.x = mpu6050.acc.x;
@@ -176,6 +154,7 @@ int main() {
         data.gyro.x = mpu6050.gyro.x;
         data.gyro.y = mpu6050.gyro.y;
         data.gyro.z = mpu6050.gyro.z;
+        data.pressure = hw611.pressure;
 
         Logger::logger->push_data_to_fifo(&data);
 
