@@ -13,7 +13,7 @@
 
 #include "WS2812.hpp"
 #include "MPU6050.hpp"
-#include "HW611.hpp"
+#include "BMP280.hpp"
 #include "logger.hpp"
 
 #define LED_PIN 16

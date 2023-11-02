@@ -27,7 +27,7 @@ add_subdirectory(lib/WS2812 build_ws2812)
 add_executable(${PROJECT_NAME} 
 src/main.cpp
 src/MPU6050.cpp
-src/HW611.cpp
+src/BMP280.cpp
 src/hw_config.cpp
 src/logger.cpp
 )

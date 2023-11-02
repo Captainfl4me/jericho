@@ -1,4 +1,4 @@
-#include "HW611.hpp"
+#include "BMP280.hpp"
 #include <iostream>
 
 BMP280::BMP280(): I2cSensor(0x76, 100) {
