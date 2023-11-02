@@ -96,7 +96,7 @@ int main() {
     MPU6050 mpu6050(0x68, (uint8_t)1000);
     mpu6050.set_accel_range(mpu_6050_range::MPU6050_RANGE_16G);
     mpu6050.set_gyro_scale(mpu_6050_scale::MPU6050_SCALE_1000DPS);
-    HW611 hw611(0x76);
+    BMP280 bmp280(0x76);
 
     mpu6050.calibrate(1000);
     multicore_reset_core1();
@@ -110,7 +110,7 @@ int main() {
         built_in_led.show();
         return 1;
     }
-    if (hw611.testConnection()) Logger::logger->write_log("HW611 connection successful");
+    if (bmp280.test_connection()) Logger::logger->write_log("HW611 connection successful");
     else {
         Logger::logger->write_error("HW611 connection failed");
         built_in_led.fill(WS2812::RGB(100, 0, 100));
@@ -145,7 +145,7 @@ int main() {
 #endif
 
         mpu6050.update();
-        hw611.updateData();
+        bmp280.update();
 
         data.time = startTime;
         data.acc.x = mpu6050.data.acc.x;
@@ -154,7 +154,7 @@ int main() {
         data.gyro.x = mpu6050.data.gyro.x;
         data.gyro.y = mpu6050.data.gyro.y;
         data.gyro.z = mpu6050.data.gyro.z;
-        data.pressure = hw611.pressure;
+        data.pressure = bmp280.data.pressure;
 
         Logger::logger->push_data_to_fifo(&data);
 
@@ -166,7 +166,7 @@ int main() {
 #ifdef DEBUG
         uint32_t executionTime = time_us_32() - startTime;
         //printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\n", executionTime, mpu6050.raw_acc[0], mpu6050.raw_acc[1], mpu6050.raw_acc[2], mpu6050.raw_gyro[0], mpu6050.raw_gyro[1], mpu6050.raw_gyro[2], mpu6050.temp);
-        printf("%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%.3f\n", executionTime, mpu6050.data.acc.x, mpu6050.data.acc.y, mpu6050.data.acc.z, mpu6050.data.gyro.x, mpu6050.data.gyro.y, mpu6050.data.gyro.z, hw611.temp, hw611.pressure);
+        printf("%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%.3f\n", executionTime, mpu6050.data.acc.x, mpu6050.data.acc.y, mpu6050.data.acc.z, mpu6050.data.gyro.x, mpu6050.data.gyro.y, mpu6050.data.gyro.z, bmp280.data.temp, bmp280.data.pressure);
 #endif
     }
     sleep_ms(100);
