@@ -18,7 +18,7 @@ void MPU6050::init() {
 void MPU6050::calibrate(uint16_t samples) {
     vector3<int16_t> gyro_sum = {0, 0, 0};
     for (uint16_t i = 0; i < samples; i++) {
-        vector3<uint16_t> raw_gyro;
+        vector3<int16_t> raw_gyro;
         uint8_t* data = this->read_from_register(MPU_REG_GYRO_XOUT_H, 6);
         raw_gyro.x = (data[0] << 8) | data[1];
         raw_gyro.y = (data[2] << 8) | data[3];
@@ -77,8 +77,8 @@ void MPU6050::set_accel_range(mpu_6050_range range) {
 bool MPU6050::update() {
     if (!I2cSensor::update()) return false;
 
-    vector3<uint16_t> raw_acc, raw_gyro;
-    uint16_t raw_temp;
+    vector3<int16_t> raw_acc, raw_gyro;
+    int16_t raw_temp;
     uint8_t* data = this->read_from_register(MPU_REG_ACCEL_XOUT_H, 14);
     raw_acc.x = (data[0] << 8) | data[1];
     raw_acc.y = (data[2] << 8) | data[3];
@@ -91,7 +91,7 @@ bool MPU6050::update() {
     this->data.acc.x = (float)(raw_acc.x / this->config.range_per_digit);
     this->data.acc.y = (float)(raw_acc.y / this->config.range_per_digit);
     this->data.acc.z = (float)(raw_acc.z / this->config.range_per_digit);
-    this->data.temp = ((int16_t)raw_temp) / 340 + 36.53f;
+    this->data.temp = raw_temp / 340 + 36.53f;
     this->data.gyro.x = (((float)raw_gyro.x)- this->config.gyro_offset.x) / this->config.dps_per_digit;
     this->data.gyro.y = (((float)raw_gyro.y) - this->config.gyro_offset.y) / this->config.dps_per_digit;
     this->data.gyro.z = (((float)raw_gyro.z) - - this->config.gyro_offset.z) / this->config.dps_per_digit;
@@ -99,7 +99,7 @@ bool MPU6050::update() {
 }
 
 void MPU6050::update_only_acc() {
-    vector3<uint16_t> raw_acc;
+    vector3<int16_t> raw_acc;
     uint8_t* data = this->read_from_register(MPU_REG_ACCEL_XOUT_H, 6);
     raw_acc.x = (data[0] << 8) | data[1];
     raw_acc.y = (data[2] << 8) | data[3];
@@ -111,7 +111,7 @@ void MPU6050::update_only_acc() {
 }
 
 void MPU6050::update_only_temp() {
-    uint16_t raw_temp;
+    int16_t raw_temp;
     uint8_t* data = this->read_from_register(MPU_REG_TEMP_OUT_H, 2);
 
     raw_temp = (data[0] << 8) | data[1];
@@ -119,7 +119,7 @@ void MPU6050::update_only_temp() {
 }
 
 void MPU6050::update_only_gyro() {
-    vector3<uint16_t> raw_gyro;
+    vector3<int16_t> raw_gyro;
     uint8_t* data = this->read_from_register(MPU_REG_GYRO_XOUT_H, 6);
     raw_gyro.x = (data[0] << 8) | data[1];
     raw_gyro.y = (data[2] << 8) | data[3];
