@@ -87,6 +87,7 @@ bool MPU6050::update() {
     raw_gyro.x = (data[8] << 8) | data[9];
     raw_gyro.y = (data[10] << 8) | data[11];
     raw_gyro.z = (data[12] << 8) | data[13];
+    free(data);
 
     this->data.acc.x = (float)(raw_acc.x / this->config.range_per_digit);
     this->data.acc.y = (float)(raw_acc.y / this->config.range_per_digit);
@@ -104,6 +105,7 @@ void MPU6050::update_only_acc() {
     raw_acc.x = (data[0] << 8) | data[1];
     raw_acc.y = (data[2] << 8) | data[3];
     raw_acc.z = (data[4] << 8) | data[5];
+    free(data);
 
     this->data.acc.x = (float)(raw_acc.x / this->config.range_per_digit);
     this->data.acc.y = (float)(raw_acc.y / this->config.range_per_digit);
@@ -115,6 +117,7 @@ void MPU6050::update_only_temp() {
     uint8_t* data = this->read_from_register(MPU_REG_TEMP_OUT_H, 2);
 
     raw_temp = (data[0] << 8) | data[1];
+    free(data);
     this->data.temp = ((int16_t)raw_temp) / 340 + 36.53f;
 }
 
@@ -124,6 +127,7 @@ void MPU6050::update_only_gyro() {
     raw_gyro.x = (data[0] << 8) | data[1];
     raw_gyro.y = (data[2] << 8) | data[3];
     raw_gyro.z = (data[4] << 8) | data[5];
+    free(data);
 
     this->data.gyro.x = (((float)raw_gyro.x)- this->config.gyro_offset.x) / this->config.dps_per_digit;
     this->data.gyro.y = (((float)raw_gyro.y) - this->config.gyro_offset.y) / this->config.dps_per_digit;
@@ -132,5 +136,7 @@ void MPU6050::update_only_gyro() {
 
 bool MPU6050::test_connection() {
     uint8_t* data = this->read_from_register(MPU_REG_WHO_AM_I, 1);
-    return *data == this->addr;
+    uint8_t data_cp = *data;
+    free(data);
+    return data_cp == this->addr;
 }

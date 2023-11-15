@@ -64,7 +64,7 @@ I2cSensor<T>::I2cSensor(uint8_t addr, uint16_t freq, i2c_inst_t *i2c_port) {
 
 template <class T>
 bool I2cSensor<T>::update() {
-    if ((time_us_32() - this->last_update_time) < 1000000 / this->freq) return false;
+    if ((time_us_32() - this->last_update_time) < 1000000 / this->freq) return true;
     this->last_update_time = time_us_32();
     return true;
 }

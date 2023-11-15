@@ -34,6 +34,7 @@ void BMP280::fetchCalibParams() {
     this->calib_param.dig_P7 = (int16_t)(data[19] << 8) | data[18];
     this->calib_param.dig_P8 = (int16_t)(data[21] << 8) | data[20];
     this->calib_param.dig_P9 = (int16_t)(data[23] << 8) | data[22];
+    free(data);
 }
 
 int32_t BMP280::compute_fine_res_temperature(int32_t raw_temp) {
@@ -69,6 +70,7 @@ bool BMP280::update() {
 
     raw_pressure = data[0] >> 4;
     raw_temp = data[1] >> 4;
+    free(data);
 
     // Convert temperature calibration data to 32-bits
     int32_t fine_temp = this->compute_fine_res_temperature(raw_temp);
@@ -79,5 +81,7 @@ bool BMP280::update() {
 
 bool BMP280::test_connection() {
     uint8_t* data = this->read_from_register(BMP280_REG_ID, 1);
-    return *data == 0x58;
+    uint8_t data_cp = *data;
+    free(data);
+    return data_cp == 0x58;
 }

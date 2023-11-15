@@ -147,7 +147,7 @@ int main() {
         mpu6050.update();
         bmp280.update();
 
-        data.time = startTime;
+        data.time = time_us_32();
         data.acc.x = mpu6050.data.acc.x;
         data.acc.y = mpu6050.data.acc.y;
         data.acc.z = mpu6050.data.acc.z;
@@ -158,10 +158,10 @@ int main() {
 
         Logger::logger->push_data_to_fifo(&data);
 
-        if(time_us_32() > 30 * 1000000) {
-            multicore_fifo_push_blocking(SHUTDOWN_CORE);
-            break;
-        }
+        // if(time_us_32() > 30 * 1000000) {
+        //     multicore_fifo_push_blocking(SHUTDOWN_CORE);
+        //     break;
+        // }
 
 #ifdef DEBUG
         uint32_t executionTime = time_us_32() - startTime;
